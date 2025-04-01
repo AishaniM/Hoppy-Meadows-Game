@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluffy Rabbit Garden Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: url('image.jpg') no-repeat center center/cover;
+    }
+    canvas {
+      display: block;
+      background-color: rgba(255,255,255,0.5);
+    }
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 40px;
+      font-size: 24px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 2;
+    }
+  #tryAgainButton {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 16px 32px;
+      font-size: 20px;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+<button id="startButton">Play</button>
+<canvas id="gameCanvas"></canvas>
+<button id="tryAgainButton">Try Again</button>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const startButton = document.getElementById("startButton");
+  let gameStarted = false;
+
+  const bunny = new Image();
+  bunny.src = 'bunny.png';
+
+  const bush = new Image();
+  bush.src = 'bush.png';
+
+  const carrot = new Image();
+  carrot.src = 'carrot.png';
+
+  let bunnyX = 100;
+  let bunnyY = canvas.height - 100;
+  let bunnyVelocityY = 0;
+  const gravity = 1;
+  const jumpPower = -25;
+  let onGround = true;
+
+  let obstacles = [];
+  const obstacleWidth = 120;
+  const obstacleHeight = 100;
+  const obstacleSpeed = 6;
+  let frameCount = 0;
+
+  let gameOver = false;
+  let bushesCleared = 0;
+  let won = false;
+
+  function drawBunny() {
+    ctx.drawImage(bunny, bunnyX, bunnyY, 140, 140);
+  }
+
+  function drawObstacles() {
+    obstacles.forEach(ob => {
+      ctx.drawImage(bush, ob.x, ob.y, obstacleWidth, obstacleHeight);
+    });
+  }
+
+  function updateObstacles() {
+    if (frameCount % 100 === 0) {
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - obstacleHeight - 20,
+      });
+    }
+    obstacles.forEach(ob => ob.x -= obstacleSpeed);
+    obstacles = obstacles.filter(ob => ob.x + obstacleWidth > 0);
+  }
+
+  function checkCollision() {
+    for (let ob of obstacles) {
+      if (
+        bunnyX < ob.x + obstacleWidth &&
+        bunnyX + 50 > ob.x &&
+        bunnyY + 50 > ob.y
+      ) {
+        gameOver = true;
+      }
+    }
+  }
+
+  function drawGameOver() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "48px sans-serif";
+    ctx.fillText("Game Over! Fluffy got caught!", 100, canvas.height / 2);
+    document.getElementById("tryAgainButton").style.display = "block";
+  }
+
+  function drawWinScreen() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "48px sans-serif";
+    ctx.fillText("You won!", 100, canvas.height / 2);
+    ctx.drawImage(carrot, canvas.width / 2 - 75, canvas.height / 2 + 30, 150, 300);
+    document.getElementById("tryAgainButton").style.display = "block";
+  }
+
+  function update() {
+    if (!gameStarted) return;
+    if (gameOver) {
+      drawGameOver();
+      return;
+    }
+    if (won) {
+      drawWinScreen();
+      return;
+    }
+    if (!gameStarted) return;
+    if (gameOver) {
+      drawGameOver();
+      return;
+    }
+
+    frameCount++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    bunnyVelocityY += gravity;
+    bunnyY += bunnyVelocityY;
+
+    if (bunnyY >= canvas.height - 140) {
+      bunnyY = canvas.height - 140;
+      bunnyVelocityY = 0;
+      onGround = true;
+    } else {
+      onGround = false;
+    }
+
+    updateObstacles();
+    drawObstacles();
+    drawBunny();
+    checkCollision();
+
+    if (obstacles.length > 0 && obstacles[0].x + obstacleWidth < bunnyX && !obstacles[0].cleared) {
+      obstacles[0].cleared = true;
+      bushesCleared++;
+      if (bushesCleared >= 3) {
+        won = true;
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && gameStarted && !gameOver && onGround) {
+      bunnyVelocityY = jumpPower;
+    }
+  });
+
+  startButton.addEventListener("click", () => {
+    startButton.style.display = "none";
+    gameStarted = true;
+    update();
+  });
+
+  document.getElementById("tryAgainButton").addEventListener("click", () => {
+    location.reload();
+  });
+</script>
+</body>
+</html>
